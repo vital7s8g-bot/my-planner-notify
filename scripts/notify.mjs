@@ -42,12 +42,15 @@ if (inWindow(nowHHMM, s.tomorrowTime, W)) {
 }
 
 const nowMin = m(nowHHMM);
+let debug = `Now: ${nowHHMM}, Today: ${today}\n`;
 for (const t of tasks) {
   if (t.solved || t.deleted || !t.date || !t.time || t.date!==today) continue;
   const rm = t.reminderMinutes != null ? t.reminderMinutes : s.defaultReminderMinutes;
   if (!rm || rm<=0) continue;
-  const tm = m(t.time)-rm;
-  if (tm>=0 && Math.abs(nowMin-tm)<=W) notes.push({ title: '⏰ Напоминание', body: `«${t.title}» через ${rm} мин (в ${t.time})` });
+  const tm2 = m(t.time)-rm;
+  const diff = Math.abs(nowMin - tm2);
+  debug += `  Task "${t.title}" time=${t.time} rm=${rm} target=${tm2} now=${nowMin} diff=${diff}\n`;
+  if (tm2>=0 && diff<=W) notes.push({ title: '⏰ Напоминание', body: `«${t.title}» через ${rm} мин (в ${t.time})` });
 }
 
 let sent = 0;
@@ -57,3 +60,4 @@ for (const n of notes) {
   }
 }
 console.log(`Notes: ${notes.length}, Sent: ${sent}, Subs: ${subs.length}`);
+if (notes.length===0) console.log(debug);
