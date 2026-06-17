@@ -58,10 +58,17 @@ for (const t of tasks) {
 }
 
 let sent = 0;
+let errors = 0;
 for (const n of notes) {
   for (const sub of subs) {
-    try { await webpush.sendNotification(sub, JSON.stringify(n), { TTL: 86400 }); sent++; } catch (e) {}
+    try {
+      await webpush.sendNotification(sub, JSON.stringify(n), { TTL: 86400 });
+      sent++;
+    } catch (e) {
+      errors++;
+      console.log('Send error:', e.statusCode, e.message?.substring(0, 100));
+    }
   }
 }
-console.log(`Notes: ${notes.length}, Sent: ${sent}, Subs: ${subs.length}`);
+console.log(`Notes: ${notes.length}, Sent: ${sent}, Errors: ${errors}, Subs: ${subs.length}`);
 if (notes.length===0) console.log(debug);
