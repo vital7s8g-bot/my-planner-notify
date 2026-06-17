@@ -68,7 +68,7 @@ for (const n of notes) {
     } catch (e) {
       errors++;
       console.log('Error:', e.statusCode, '-', (e.message || '').substring(0, 60), '-', (sub.endpoint || '').substring(0, 50));
-      if (e.statusCode === 410|| e.statusCode === 401) badEndpoints.push(sub.endpoint);
+      badEndpoints.push(sub.endpoint);
 
     }
   }
