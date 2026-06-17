@@ -1,6 +1,10 @@
 import webpush from 'web-push';
 
-webpush.setVapidDetails('mailto:notify@myplanner.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+const MY_VAPID_PUBLIC = 'BDO-FSomZsBW_aDqbc8bQ0l2xKK-dDz3yCTa4LK9nKNPynHeTQ3zl0Na4at8a9rxJVXhYtoK6HApvqXEOxxwYqU';
+const MY_VAPID_PRIVATE = 'WZvUck2BfQ52d8oB13lHflp7GzY721HNDR_3v-1wcj0';
+
+webpush.setVapidDetails('mailto:notify@myplanner.app', process.env.VAPID_PUBLIC_KEY || MY_VAPID_PUBLIC, process.env.VAPID_PRIVATE_KEY || MY_VAPID_PRIVATE);
+
 
 const pad = n => n < 10 ? '0' + n : '' + n;
 const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
