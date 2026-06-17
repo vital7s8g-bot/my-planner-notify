@@ -59,6 +59,7 @@ for (const t of tasks) {
 
 let sent = 0;
 let errors = 0;
+const badEndpoints = [];
 for (const n of notes) {
   for (const sub of subs) {
     try {
@@ -66,9 +67,17 @@ for (const n of notes) {
       sent++;
     } catch (e) {
       errors++;
-      console.log('Send error:', e.statusCode, e.message?.substring(0, 100));
+      if (e.statusCode === 410) badEndpoints.push(sub.endpoint);
     }
   }
+}
+if (badEndpoints.length > 0) {
+  const good = subs.filter(s => !badEndpoints.includes(s.endpoint));
+  await fetch(`https://api.jsonbin.io/v3/b/${process.env.JSONBIN_BIN}`, {
+    method: 'PUT',
+    headers: { 'X-Master-Key': process.env.JSONBIN_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...data, pushSubscriptions: good }),
+  });
 }
 console.log(`Notes: ${notes.length}, Sent: ${sent}, Errors: ${errors}, Subs: ${subs.length}`);
 if (notes.length===0) console.log(debug);
