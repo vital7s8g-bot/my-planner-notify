@@ -70,7 +70,6 @@ for (const n of notes) {
       console.log('Error:', e.statusCode, '-', (e.message || '').substring(0, 60), '-', (sub.endpoint || '').substring(0, 50));
       if (e.statusCode === 410) badEndpoints.push(sub.endpoint);
 
-      }
     }
   }
 }
