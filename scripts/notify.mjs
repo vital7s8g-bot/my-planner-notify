@@ -67,9 +67,9 @@ for (const n of notes) {
       sent++;
     } catch (e) {
       errors++;
-      if (e.statusCode === 410) {
-        badEndpoints.push(sub.endpoint);
-        console.log('410:', sub.endpoint?.substring(0, 80));
+      console.log('Error:', e.statusCode, '-', (e.message || '').substring(0, 60), '-', (sub.endpoint || '').substring(0, 50));
+      if (e.statusCode === 410) badEndpoints.push(sub.endpoint);
+
       }
     }
   }
