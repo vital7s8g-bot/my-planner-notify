@@ -19,10 +19,14 @@ const s = data.notifySettings || { overdueTime: '09:00', todayTime: '08:00', tom
 if (subs.length === 0) { console.log('No subscriptions'); process.exit(0); }
 
 const now = new Date();
-const nowHHMM = hhmm(now);
-const today = now.toISOString().slice(0, 10);
+const offset = now.getTimezoneOffset();
+const localNow = new Date(now.getTime() - offset * 60000);
+const nowHHMM = hhmm(localNow);
+const today = localNow.toISOString().slice(0, 10);
 const W = 5;
 const notes = [];
+
+console.log('Local time:', nowHHMM, 'Date:', today, 'UTC offset:', -offset/60 + 'h');
 
 if (inWindow(nowHHMM, s.overdueTime, W)) {
   const o = tasks.filter(t => !t.solved && !t.deleted && t.date && t.date < today);
@@ -35,21 +39,21 @@ if (inWindow(nowHHMM, s.todayTime, W)) {
     notes.push({ title: '📋 Задачи на сегодня', body: ti || td.slice(0,3).map(t=>t.title).join(', ') + (td.length>3 ? '...' : '') });
   }
 }
-const tom = new Date(now); tom.setDate(tom.getDate()+1);
+const tom = new Date(localNow); tom.setDate(tom.getDate()+1);
 if (inWindow(nowHHMM, s.tomorrowTime, W)) {
   const tm = tasks.filter(t => !t.solved && !t.deleted && t.date === tom.toISOString().slice(0,10));
   if (tm.length) notes.push({ title: '📅 Задачи на завтра', body: tm.slice(0,3).map(t=>t.title).join(', ')+(tm.length>3?'...':'') });
 }
 
 const nowMin = m(nowHHMM);
-let debug = `Now: ${nowHHMM}, Today: ${today}\n`;
+let debug = '';
 for (const t of tasks) {
   if (t.solved || t.deleted || !t.date || !t.time || t.date!==today) continue;
   const rm = t.reminderMinutes != null ? t.reminderMinutes : s.defaultReminderMinutes;
   if (!rm || rm<=0) continue;
   const tm2 = m(t.time)-rm;
   const diff = Math.abs(nowMin - tm2);
-  debug += `  Task "${t.title}" time=${t.time} rm=${rm} target=${tm2} now=${nowMin} diff=${diff}\n`;
+  debug += `  "${t.title}" time=${t.time} rm=${rm} target=${Math.floor(tm2/60)}:${pad(tm2%60)} now=${nowHHMM} diff=${diff}\n`;
   if (tm2>=0 && diff<=W) notes.push({ title: '⏰ Напоминание', body: `«${t.title}» через ${rm} мин (в ${t.time})` });
 }
 
