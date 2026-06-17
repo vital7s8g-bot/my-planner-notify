@@ -67,12 +67,16 @@ for (const n of notes) {
       sent++;
     } catch (e) {
       errors++;
-      if (e.statusCode === 410) badEndpoints.push(sub.endpoint);
+      if (e.statusCode === 410) {
+        badEndpoints.push(sub.endpoint);
+        console.log('410:', sub.endpoint?.substring(0, 80));
+      }
     }
   }
 }
 if (badEndpoints.length > 0) {
   const good = subs.filter(s => !badEndpoints.includes(s.endpoint));
+  console.log('Removing', badEndpoints.length, 'bad subs, keeping', good.length);
   await fetch(`https://api.jsonbin.io/v3/b/${process.env.JSONBIN_BIN}`, {
     method: 'PUT',
     headers: { 'X-Master-Key': process.env.JSONBIN_KEY, 'Content-Type': 'application/json' },
