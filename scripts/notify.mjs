@@ -23,7 +23,7 @@ const now = new Date();
 const localNow = new Date(now.getTime() + offsetHours * 3600000);
 const nowHHMM = hhmm(localNow);
 const today = localNow.toISOString().slice(0, 10);
-const W = 5;
+const W = 10;
 const notes = [];
 
 console.log('Local time:', nowHHMM, 'Date:', today, 'TZ offset:', offsetHours + 'h');
