@@ -94,3 +94,5 @@ for (const binId of binIds) {
 }
 
 console.log(`Total: Notes=${totalNotes} Sent=${totalSent} Errors=${totalErrors} Subs=${totalSubs}`);
+
+
