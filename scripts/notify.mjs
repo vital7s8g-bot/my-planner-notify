@@ -12,6 +12,8 @@ const binIds = (process.env.JSONBIN_BINS || '').split(',').map(s => s.trim()).fi
 
 if (!apiKey || binIds.length === 0) { console.log('Missing JSONBIN_KEY or JSONBIN_BINS'); process.exit(1); }
 
+console.log('Processing bins:', binIds);
+
 const headers = { 'X-Master-Key': apiKey, 'Content-Type': 'application/json' };
 
 let totalNotes = 0, totalSent = 0, totalErrors = 0, totalSubs = 0;
@@ -31,34 +33,46 @@ for (const binId of binIds) {
   const localNow = new Date(now.getTime() + offsetHours * 3600000);
   const nowHHMM = hhmm(localNow);
   const today = localNow.toISOString().slice(0, 10);
-  const W = 10;
+  const W = 5;
+
+  if (!data._reminderSent) data._reminderSent = {};
+  if (!data._notifyDaily) data._notifyDaily = {};
+
   const notes = [];
 
-  if (inWindow(nowHHMM, s.overdueTime, W)) {
+  if (inWindow(nowHHMM, s.overdueTime, W) && data._notifyDaily.overdue !== s.overdueTime + '_' + today) {
     const o = tasks.filter(t => !t.solved && !t.deleted && t.date && t.date < today);
-    if (o.length) notes.push({ title: '⚠️ Просроченные задачи', body: o.slice(0,3).map(t=>t.title).join(', ') + (o.length>3?'...':'') });
+    if (o.length) { notes.push({ title: '⚠️ Просроченные задачи', body: o.slice(0,3).map(t=>t.title).join(', ') + (o.length>3?'...':'') }); data._notifyDaily.overdue = s.overdueTime + '_' + today; }
   }
-  if (inWindow(nowHHMM, s.todayTime, W)) {
+  if (inWindow(nowHHMM, s.todayTime, W) && data._notifyDaily.today !== s.todayTime + '_' + today) {
     const td = tasks.filter(t => !t.solved && !t.deleted && t.date === today);
     if (td.length) {
       const ti = td.filter(t=>t.time).map(t=>`${t.title} в ${t.time}`).join(', ');
       notes.push({ title: '📋 Задачи на сегодня', body: ti || td.slice(0,3).map(t=>t.title).join(', ')+(td.length>3?'...':'') });
+      data._notifyDaily.today = s.todayTime + '_' + today;
     }
   }
   const tom = new Date(localNow); tom.setDate(tom.getDate()+1);
   const tomStr = tom.toISOString().slice(0,10);
-  if (inWindow(nowHHMM, s.tomorrowTime, W)) {
+  if (inWindow(nowHHMM, s.tomorrowTime, W) && data._notifyDaily.tomorrow !== s.tomorrowTime + '_' + today) {
     const tm = tasks.filter(t => !t.solved && !t.deleted && t.date === tomStr);
-    if (tm.length) notes.push({ title: '📅 Задачи на завтра', body: tm.slice(0,3).map(t=>t.title).join(', ')+(tm.length>3?'...':'') });
+    if (tm.length) { notes.push({ title: '📅 Задачи на завтра', body: tm.slice(0,3).map(t=>t.title).join(', ')+(tm.length>3?'...':'') }); data._notifyDaily.tomorrow = s.tomorrowTime + '_' + today; }
   }
 
   const nowMin = m(nowHHMM);
+  const reminderTaskIds = [];
   for (const t of tasks) {
     if (t.solved || t.deleted || !t.date || !t.time || t.date!==today) continue;
     const rm = t.reminderMinutes != null ? t.reminderMinutes : s.defaultReminderMinutes;
     if (!rm || rm<=0) continue;
     const tm = m(t.time)-rm;
-    if (tm>=0 && Math.abs(nowMin-tm)<=W) notes.push({ title: '⏰ Напоминание', body: `«${t.title}» через ${rm} мин (в ${t.time})` });
+    if (tm<0) continue;
+    const lastSent = data._reminderSent[t.id];
+    if (lastSent === today) continue;
+    if (nowMin >= tm && nowMin < tm + 5) {
+      reminderTaskIds.push(t.id);
+      notes.push({ title: '⏰ Напоминание', body: `«${t.title}» через ${rm} мин (в ${t.time})` });
+    }
   }
 
   if (notes.length === 0) continue;
@@ -72,19 +86,18 @@ for (const binId of binIds) {
         sent++;
       } catch (e) {
         errors++;
-      console.log(`Bin ${binId}:`, e.statusCode, (e.message||'').substring(0,60), (sub.endpoint||'').substring(0,50));
-      badEndpoints.push(sub.endpoint);
+        console.log(`Bin ${binId}:`, e.statusCode, (e.message||'').substring(0,60), (sub.endpoint||'').substring(0,50));
+        badEndpoints.push(sub.endpoint);
       }
     }
   }
 
-  if (badEndpoints.length > 0) {
-    const good = subs.filter(s => !badEndpoints.includes(s.endpoint));
-    await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-      method: 'PUT', headers,
-      body: JSON.stringify({ ...data, pushSubscriptions: good }),
-    });
-  }
+  for (const id of reminderTaskIds) data._reminderSent[id] = today;
+  if (badEndpoints.length > 0) data.pushSubscriptions = subs.filter(s => !badEndpoints.includes(s.endpoint));
+  await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+    method: 'PUT', headers,
+    body: JSON.stringify(data),
+  });
 
   totalNotes += notes.length;
   totalSent += sent;
@@ -94,5 +107,3 @@ for (const binId of binIds) {
 }
 
 console.log(`Total: Notes=${totalNotes} Sent=${totalSent} Errors=${totalErrors} Subs=${totalSubs}`);
-
-
