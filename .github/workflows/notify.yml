@@ -22,6 +22,6 @@ jobs:
         working-directory: scripts
         env:
           JSONBIN_KEY: ${{ secrets.JSONBIN_KEY }}
-          JSONBIN_BIN: ${{ secrets.JSONBIN_BIN }}
+          JSONBIN_BIN: ${{ secrets.JSONBIN_BINS }}
           TZ_OFFSET: ${{ secrets.TZ_OFFSET }}
 
